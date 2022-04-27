@@ -1,12 +1,14 @@
 package com.bs.playgroung.spring.insurance.service.premium;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 
-import com.bs.playgroung.spring.insurance.service.premium.strategy.PremiumStrategy;
+import com.bs.playgroung.spring.insurance.service.domain.Policy;
+import com.bs.playgroung.spring.insurance.service.premium.calculator.PremiumCalculator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,15 +18,13 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class PremiumCalculationService {
 
-	private final List<PremiumStrategy> premiumStrategies;
+	private final List<PremiumCalculator> premiumStrategies;
 
-	public BigDecimal calculate(Object obj) {
+	public BigDecimal calculate(Policy policy) {
 		return this.premiumStrategies.stream()
-				.map(premiumStrategy -> {
-					log.info("Executing premium strategy '{}'", premiumStrategy.getClass().getSimpleName());
-					return premiumStrategy.calculate(obj);
-				})
+				.map(premiumCalculator -> premiumCalculator.calculate(policy))
 				.filter(Objects::nonNull)
-				.reduce(BigDecimal.ZERO, BigDecimal::add);
+				.reduce(BigDecimal.ZERO, BigDecimal::add)
+				.setScale(2, RoundingMode.HALF_UP);
 	}
 }
