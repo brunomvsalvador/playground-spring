@@ -6,6 +6,8 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import com.bs.playgroung.spring.insurance.service.domain.Policy;
 import com.bs.playgroung.spring.insurance.service.domain.PolicySubObject;
@@ -25,6 +27,8 @@ public abstract class AbstractPremiumCalculator implements PremiumCalculator {
 	private final Logger log = LoggerFactory.getLogger(this.getClass());
 	private final Set<RiskType> riskTypes;
 
+	private final String coefficientExpression;
+
 	@Override
 	public BigDecimal calculate(Policy policy) {
 		final var totalInsured = sumInsuredValues(policy);
@@ -36,7 +40,14 @@ public abstract class AbstractPremiumCalculator implements PremiumCalculator {
 		return result;
 	}
 
-	protected abstract BigDecimal resolveCoefficient(BigDecimal totalInsured);
+	protected BigDecimal resolveCoefficient(BigDecimal totalInsured) {
+		final var context = new StandardEvaluationContext();
+		context.setVariable("totalInsured", totalInsured);
+
+		return new SpelExpressionParser()
+				.parseExpression(this.coefficientExpression)
+				.getValue(context, BigDecimal.class);
+	}
 
 	protected BigDecimal sumInsuredValues(Policy policy) {
 		return policy.getObjects().stream()
